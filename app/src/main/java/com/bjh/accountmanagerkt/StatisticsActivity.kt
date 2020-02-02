@@ -2,7 +2,6 @@ package com.bjh.accountmanagerkt
 
 import android.app.DatePickerDialog
 import android.content.res.Resources
-import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
 import android.database.sqlite.SQLiteOpenHelper
 import android.os.Bundle
@@ -24,7 +23,6 @@ import kotlinx.android.synthetic.main.activity_statistics.*
 class StatisticsActivity : AppCompatActivity() {
 
     private var databaseHelper: SQLiteOpenHelper? = null
-    private var db: SQLiteDatabase? = null
 
     private var strRadioSrhChoose: String? = null       // 조회 기준년월 값 세팅
     private var strBaseTimeSection: String? = null  // 시 / 분 구분
@@ -57,7 +55,6 @@ class StatisticsActivity : AppCompatActivity() {
         intBaseAmt = intent.getIntExtra("intBaseAmt", 0)
 
         databaseHelper = DatabaseHelper(applicationContext)
-        db = databaseHelper!!.readableDatabase
 
         // 날짜 입력항목 선택시 키보드 안올라오게 세팅
         txtSrhStartDate.inputType = 0
@@ -125,8 +122,7 @@ class StatisticsActivity : AppCompatActivity() {
             val staticsList = ArrayList<HashMap<String, String>>()
 
             try {
-                db = databaseHelper!!.readableDatabase
-                val cursor = db!!.rawQuery(strQuery, arrayOf(strStartDate, strEndDate))
+                val cursor = DatabaseHelper(applicationContext).readableDatabase.rawQuery(strQuery, arrayOf(strStartDate, strEndDate))
 
                 if (cursor.count > 0) {
 
@@ -158,7 +154,7 @@ class StatisticsActivity : AppCompatActivity() {
                 }
 
                 cursor.close()
-                db!!.close()
+                DatabaseHelper(applicationContext).readableDatabase.close()
             } catch (ex: SQLiteException) {
                 Toast.makeText(applicationContext, "Database unavailable btnSearch.setOnClickListener()", Toast.LENGTH_SHORT).show()
             }

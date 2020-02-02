@@ -6,10 +6,10 @@ import android.content.Intent
 import android.database.sqlite.SQLiteException
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
-import android.widget.RadioButton
 import android.widget.TextView
 import android.widget.Toast
 
@@ -21,18 +21,17 @@ import com.bjh.accountmanagerkt.util.StringUtil
 import java.util.Calendar
 
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.activity_setting.view.*
 
 class MainActivity : AppCompatActivity() {
 
-    private var choiceDay: String? = null              // 선택한 날짜
-    private var modChk = false        // 등록 / 수정 체크
-    private var setModChk = false    // 기본 세팅 등록 / 수정 체크
+    private var choiceDay: String = "" // 선택한 날짜
+    private var modChk = false         // 등록 / 수정 체크
+    private var setModChk = false      // 기본 세팅 등록 / 수정 체크
 
     private var chooseYear: Int = 0         // 선택 년
     private var chooseMonth: Int = 0        // 선택 월
     private var chooseDayOfMonth: Int = 0   // 선택 일
-
-    private var settingView: View? = null   // 기본 세팅 화면
 
     private var strBaseTimeSection: String? = null  // 시 / 분 구분
     private var strBaseTime: String? = null         // 기본 근무 시간
@@ -62,7 +61,7 @@ class MainActivity : AppCompatActivity() {
         chooseMonth = Integer.parseInt(StringUtil.curMonth)         // 선택 월
         chooseDayOfMonth = Integer.parseInt(StringUtil.curDay)      // 선택 일자
 
-        // 기본 세팅 시간 및 금액 불러오기
+            // 기본 세팅 시간 및 금액 불러오기
         getBaseSettingInfo()
 
         // 월 근무 시간 및 근무 금액 조회
@@ -131,31 +130,31 @@ class MainActivity : AppCompatActivity() {
                 chk = false
             }
 
-            if (chk && (txtDailyWork!!.text == null || txtDailyWork!!.text.toString() == "")) {
+            if (chk && txtDailyWork.text.toString() == "") {
                 Toast.makeText(applicationContext, R.string.msgDailyValidationNm, Toast.LENGTH_LONG).show()
                 chk = false
             }
 
-            if (chk && (txtDailyTimes!!.text == null || txtDailyTimes!!.text.toString() == "")) {
+            if (chk && txtDailyTimes.text.toString() == "") {
                 Toast.makeText(applicationContext, R.string.msgDailyValidationTime, Toast.LENGTH_LONG).show()
                 chk = false
             }
 
-            if (chk && (txtDailyAmount!!.text == null || txtDailyAmount!!.text.toString() == "")) {
+            if (chk && txtDailyAmount.text.toString() == "") {
                 Toast.makeText(applicationContext, R.string.msgDailyValidationAmount, Toast.LENGTH_LONG).show()
                 chk = false
             }
 
             // 포커스 클리어
-            txtDailyWork!!.clearFocus()
-            txtDailyTimes!!.clearFocus()
-            txtDailyAmount!!.clearFocus()
+            txtDailyWork.clearFocus()
+            txtDailyTimes.clearFocus()
+            txtDailyAmount.clearFocus()
 
             if (chk) {
                 try {
                     val retVal: Long = when(modChk){
-                        true -> { DatabaseAction.updateDailyColumn(DatabaseHelper(applicationContext).readableDatabase, choiceDay.toString(), txtDailyWork!!.text.toString(), txtDailyTimes!!.text.toString(), Integer.parseInt(txtDailyAmount!!.text.toString().replace(",".toRegex(), "")).toLong())}
-                        else -> { DatabaseAction.insertDailyColumn(DatabaseHelper(applicationContext).readableDatabase, choiceDay.toString(), txtDailyWork!!.text.toString(), txtDailyTimes!!.text.toString(), Integer.parseInt(txtDailyAmount!!.text.toString().replace(",".toRegex(), "")).toLong())}
+                        true -> { DatabaseAction.updateDailyColumn(DatabaseHelper(applicationContext).readableDatabase, choiceDay, txtDailyWork.text.toString(), txtDailyTimes.text.toString(), Integer.parseInt(txtDailyAmount.text.toString().replace(",".toRegex(), "")).toLong())}
+                        else -> { DatabaseAction.insertDailyColumn(DatabaseHelper(applicationContext).readableDatabase, choiceDay, txtDailyWork.text.toString(), txtDailyTimes.text.toString(), Integer.parseInt(txtDailyAmount.text.toString().replace(",".toRegex(), "")).toLong())}
                     }
 
                     if (retVal == 0L) {
@@ -168,7 +167,7 @@ class MainActivity : AppCompatActivity() {
 
                         // 키보드 숨기기
                         val inputManager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-                        inputManager.hideSoftInputFromWindow(txtDailyAmount!!.windowToken, 0)
+                        inputManager.hideSoftInputFromWindow(txtDailyAmount.windowToken, 0)
                     }
 
                 } catch (e: SQLiteException) {
@@ -180,31 +179,24 @@ class MainActivity : AppCompatActivity() {
 
         // 세팅 버튼 클릭
         btnSetting.setOnClickListener { v ->
-            settingView = layoutInflater.inflate(R.layout.activity_setting, null)
 
-            // 구분 라디오 버튼
-            val radioHour = settingView!!.findViewById<RadioButton>(R.id.radioHour)
-            val radioMinute = settingView!!.findViewById<RadioButton>(R.id.radioMinute)
+            // setting view 생성
+            val inflater  = LayoutInflater.from(applicationContext)
+            val settingView = inflater.inflate(R.layout.activity_setting, null, true)
 
-            // 기준 시간 / 금액
-            val txtBaseTime = settingView!!.findViewById<EditText>(R.id.txtBaseTime)
-            val txtBaseAmt = settingView!!.findViewById<EditText>(R.id.txtBaseAmt)
-
-            // 월 기준일
-            val txtBaseDayOfMonth = settingView!!.findViewById<EditText>(R.id.txtBaseDayOfMonth)
-
+            // 기준 시/분 라디오 버튼 선택
             if (strBaseTimeSection != null && strBaseTimeSection == "HOUR") {
-                radioHour.isChecked = true
-                radioMinute.isChecked = false
+                settingView.radioHour.isChecked = true
+                settingView.radioMinute.isChecked = false
             } else if (strBaseTimeSection != null && strBaseTimeSection == "MINUTE") {
-                radioHour.isChecked = false
-                radioMinute.isChecked = true
+                settingView.radioHour.isChecked = false
+                settingView.radioMinute.isChecked = true
             }
 
-            txtBaseTime.setText(strBaseTime)   // 기준 시간 값 세팅
-            txtBaseAmt.setText(StringUtil.convertNumberToComma(intBaseAmt.toString()))    // 기준 금액 값 세팅
-            txtBaseDayOfMonth.setText(strBaseDayOfMonth)   // 기준일 값 세팅
-            setBaseDayOfMonthInfo(Integer.valueOf(strBaseDayOfMonth!!))  // 기준일 예시 세팅
+            settingView.txtBaseTime.setText(strBaseTime)   // 기준 시간 값 세팅
+            settingView.txtBaseAmt.setText(StringUtil.convertNumberToComma(intBaseAmt.toString()))    // 기준 금액 값 세팅
+            settingView.txtBaseDayOfMonth.setText(strBaseDayOfMonth)   // 기준일 값 세팅
+            setBaseDayOfMonthInfo(settingView, Integer.valueOf(strBaseDayOfMonth.toString()))  // 기준일 예시 세팅
 
             // dialog 세팅
             val dialog = AlertDialog.Builder(v.context)
@@ -222,50 +214,39 @@ class MainActivity : AppCompatActivity() {
                 saveButton.setOnClickListener {
                     var chk = true
 
-                    val timeSection: String
-
-                    // 구분 라디오 버튼
-                    val radioHour = settingView!!.findViewById<RadioButton>(R.id.radioHour)
-                    val radioMinute = settingView!!.findViewById<RadioButton>(R.id.radioMinute)
-
-                    // 기준 시간 / 금액
-                    val txtBaseTime = settingView!!.findViewById<EditText>(R.id.txtBaseTime)
-                    val txtBaseAmt = settingView!!.findViewById<EditText>(R.id.txtBaseAmt)
-                    val txtBaseDayOfMonth = settingView!!.findViewById<EditText>(R.id.txtBaseDayOfMonth)
-
-                    if (!radioHour.isChecked && !radioMinute.isChecked) {        // 구분 선택 체크
+                    if (!settingView.radioHour.isChecked && !settingView.radioMinute.isChecked) {        // 구분 선택 체크
                         Toast.makeText(applicationContext, R.string.msgValidationSection, Toast.LENGTH_LONG).show()
                         chk = false
                     }
 
-                    if (chk && (txtBaseTime.text == null || txtBaseTime.text.toString() == "")) {         // 시간 선택 체크
+                    if (chk && (settingView.txtBaseTime.text == null || settingView.txtBaseTime.text.toString() == "")) {         // 시간 선택 체크
                         Toast.makeText(applicationContext, R.string.msgValidationTime, Toast.LENGTH_LONG).show()
                         chk = false
                     }
 
-                    if (chk && (txtBaseAmt.text == null || txtBaseAmt.text.toString() == "")) {           // 금액 선택 체크
+                    if (chk && (settingView.txtBaseAmt.text == null || settingView.txtBaseAmt.text.toString() == "")) {           // 금액 선택 체크
                         Toast.makeText(applicationContext, R.string.msgValidationAmount, Toast.LENGTH_LONG).show()
                         chk = false
                     }
 
                     // 월 기준일 비교를 위한 cast
-                    val strBaseDayOfMonthVal = Integer.valueOf(txtBaseDayOfMonth.text.toString())
+                    val strBaseDayOfMonthVal = Integer.valueOf(settingView.txtBaseDayOfMonth.text.toString())
 
                     if (chk && (strBaseDayOfMonthVal < 1 || strBaseDayOfMonthVal > 31)) {
                         Toast.makeText(applicationContext, R.string.msgBaseDayOfMonth, Toast.LENGTH_LONG).show()
                         chk = false
                     }
 
-                    timeSection = when(radioHour.isChecked){ true -> {"HOUR"} else -> {"MINUTE"} }
+                    val timeSection: String = when(settingView.radioHour.isChecked){ true -> {"HOUR"} else -> {"MINUTE"} }
 
                     if (chk) {
                         try {
                             val retVal: Long = when(setModChk){
                                 true -> {
-                                    DatabaseAction.updateBaseColumn(DatabaseHelper(applicationContext).readableDatabase, timeSection, txtBaseTime.text.toString(), Integer.valueOf(txtBaseAmt.text.toString().replace(",".toRegex(), "")).toLong(), txtBaseDayOfMonth.text.toString())
+                                    DatabaseAction.updateBaseColumn(DatabaseHelper(applicationContext).readableDatabase, timeSection, settingView.txtBaseTime.text.toString(), Integer.valueOf(settingView.txtBaseAmt.text.toString().replace(",".toRegex(), "")).toLong(), settingView.txtBaseDayOfMonth.text.toString())
                                 }
                                 else -> {
-                                    DatabaseAction.insertBaseColumn(DatabaseHelper(applicationContext).readableDatabase, timeSection, txtBaseTime.text.toString(), Integer.valueOf(txtBaseAmt.text.toString().replace(",".toRegex(), "")).toLong(), txtBaseDayOfMonth.text.toString())
+                                    DatabaseAction.insertBaseColumn(DatabaseHelper(applicationContext).readableDatabase, timeSection, settingView.txtBaseTime.text.toString(), Integer.valueOf(settingView.txtBaseAmt.text.toString().replace(",".toRegex(), "")).toLong(), settingView.txtBaseDayOfMonth.text.toString())
                                 }
                             }
 
@@ -295,24 +276,19 @@ class MainActivity : AppCompatActivity() {
                 // 취소
                 cancelButton.setOnClickListener { dialog.dismiss() }
 
-                val txtBaseDayOfMonth = settingView!!.findViewById<EditText>(R.id.txtBaseDayOfMonth)
-
                 // 월 기준일 포커스 변경 시 설명 자동 세팅 및 입력 값 유효성 체크
-                txtBaseDayOfMonth.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
+                settingView.txtBaseDayOfMonth.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
                     if (!hasFocus) {
                         val intVal = Integer.valueOf((v as TextView).text.toString())
                         if (intVal < 1 || intVal > 31) {
                             Toast.makeText(applicationContext, R.string.msgBaseDayOfMonth, Toast.LENGTH_SHORT).show()
 
-                            val txtBaseTime = settingView!!.findViewById<EditText>(R.id.txtBaseTime)  // 기준 시간
-                            val txtBaseAmt = settingView!!.findViewById<EditText>(R.id.txtBaseAmt)    // 기준 금액
-
-                            (v as EditText).requestFocus()   // 기준일 포커스 세팅
-                            txtBaseTime.isFocusable = false    // 기준 시간 포커스 제거
-                            txtBaseAmt.isFocusable = false     // 기준 금액 포커스 제거
+                            settingView.txtBaseDayOfMonth.isFocusable = true    // 기준일 포커스 세팅
+                            settingView.txtBaseTime.isFocusable = false    // 기준 시간 포커스 제거
+                            settingView.txtBaseAmt.isFocusable = false     // 기준 금액 포커스 제거
                         }
                         // ex 안내 세팅
-                        setBaseDayOfMonthInfo(intVal)
+                        setBaseDayOfMonthInfo(settingView, intVal)
                     }
                 }
             }
@@ -340,13 +316,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     // 기본일 선택 시 날짜 예시 출력
-    private fun setBaseDayOfMonthInfo(argBaseDay: Int) {
-        val baseDayOfMonthInfo = settingView!!.findViewById<TextView>(R.id.baseDayOfMonthInfo)
-
+    private fun setBaseDayOfMonthInfo(argView : View, argBaseDay: Int) {
         val startDate = StringUtil.getCalculatorDay(chooseYear, chooseMonth - 1, argBaseDay, -15, Calendar.DAY_OF_YEAR)
         val endDate = StringUtil.getCalculatorDay(chooseYear, chooseMonth - 1, argBaseDay, 15, Calendar.DAY_OF_YEAR)
         val strBaseDate = " ex) " + startDate.substring(4, 6) + resources.getString(R.string.month) + startDate.substring(6, 8) + resources.getString(R.string.day) + " ~ " + endDate.substring(4, 6) + resources.getString(R.string.month) + endDate.substring(6, 8) + resources.getString(R.string.day)
-        baseDayOfMonthInfo.text = strBaseDate
+
+        argView.baseDayOfMonthInfo.text = strBaseDate
     }
 
     /**
