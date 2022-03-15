@@ -34,20 +34,23 @@
                 <ImageButton
                     android:id="@+id/btnStatistics"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:src="@drawable/statistics"
-                    android:padding="0dp"
+                    android:layout_height="48dp"
                     android:layout_marginTop="5dp"
-                    android:layout_marginRight="5dp">
-                </ImageButton>
+                    android:layout_marginEnd="5dp"
+                    android:minWidth="48dp"
+                    android:padding="0dp"
+                    android:src="@drawable/statistics"
+                    android:contentDescription="@string/btnStatistics"/>
 
                 <ImageButton
                     android:id="@+id/btnSetting"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:src="@drawable/settings"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="5dp"
+                    android:minWidth="48dp"
                     android:padding="0dp"
-                    android:layout_marginTop="5dp"/>
+                    android:src="@drawable/settings"
+                    android:contentDescription="@string/btnSettingNm"/>
 
             </GridLayout>
 
@@ -186,7 +189,7 @@
             <Button
                 android:id="@+id/btnSave"
                 android:layout_width="70sp"
-                android:layout_height="30sp"
+                android:layout_height="48dp"
                 android:layout_column="2"
                 android:layout_row="0"
                 android:text="@string/buttonSave"
@@ -210,13 +213,15 @@
             <EditText
                 android:id="@+id/txtDailyWork"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="1"
+                android:layout_height="48dp"
                 android:layout_row="1"
+                android:layout_column="1"
                 android:layout_columnSpan="2"
                 android:ems="8"
+                android:gravity="end"
+                android:hint="@string/titleWork"
                 android:inputType="text"
-                android:gravity="end" />
+                android:textColorHint="#546E7A" />
 
             <TextView
                 android:text="@string/titleTime"
@@ -231,12 +236,14 @@
             <EditText
                 android:id="@+id/txtDailyTimes"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="1"
+                android:layout_height="48dp"
                 android:layout_row="2"
+                android:layout_column="1"
                 android:ems="8"
+                android:gravity="end"
+                android:hint="@string/titleTime"
                 android:inputType="number"
-                android:gravity="end" />
+                android:textColorHint="#546E7A" />
 
             <TextView
                 android:id="@+id/timeComment1"
@@ -262,12 +269,14 @@
             <EditText
                 android:id="@+id/txtDailyAmount"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="1"
+                android:layout_height="48dp"
                 android:layout_row="3"
+                android:layout_column="1"
                 android:ems="8"
                 android:gravity="end"
-                android:inputType="number" />
+                android:hint="@string/titleAmount"
+                android:inputType="number"
+                android:textColorHint="#546E7A" />
 
             <TextView
                 android:text="@string/labelWon"

@@ -9,14 +9,8 @@ import com.bjh.accountmanagerkt.R
 
 class RecyclerViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
-    var staticsDate: TextView
-    var staticsTime: TextView
-    var staticsAmount: TextView
+    var staticsDate: TextView = itemView.findViewById(R.id.staticsDate)
+    var staticsTime: TextView = itemView.findViewById(R.id.staticsTime)
+    var staticsAmount: TextView = itemView.findViewById(R.id.staticsAmount)
 
-    init {
-
-        staticsDate = itemView.findViewById(R.id.staticsDate)
-        staticsTime = itemView.findViewById(R.id.staticsTime)
-        staticsAmount = itemView.findViewById(R.id.staticsAmount)
-    }
 }

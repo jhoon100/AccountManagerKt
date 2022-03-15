@@ -51,14 +51,14 @@
 
                 <RadioButton
                     android:id="@+id/radioSrhYear"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
                     android:checked="true"
                     android:text="@string/year"/>
 
                 <RadioButton
                     android:id="@+id/radioSrhMonth"
-                    android:layout_width="wrap_content"
+                    android:layout_width="48dp"
                     android:layout_height="match_parent"
                     android:text="@string/month"/>
 
@@ -75,9 +75,12 @@
             <EditText
                 android:id="@+id/txtSrhStartDate"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
+                android:autofillHints=""
+                android:ems="5"
+                android:hint="@string/srhStDt"
                 android:inputType="date"
-                android:ems="5"/>
+                android:textColorHint="#546E7A" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -87,14 +90,17 @@
             <EditText
                 android:id="@+id/txtSrhEndDate"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
+                android:autofillHints=""
+                android:ems="5"
+                android:hint="@string/srhEdDt"
                 android:inputType="date"
-                android:ems="5"/>
+                android:textColorHint="#546E7A" />
 
             <Button
                 android:id="@+id/btnSearch"
                 android:layout_width="50sp"
-                android:layout_height="30sp"
+                android:layout_height="48dp"
                 android:text="@string/buttonSrh"
                 android:textSize="15sp"
                 android:textStyle="bold"

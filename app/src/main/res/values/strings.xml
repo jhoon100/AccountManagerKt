@@ -46,6 +46,11 @@
 
     <string name="srhSection"> ~ </string>
     <string name="buttonSrh">조회</string>
-    <string name="baseYearMonth">기준년월</string>
+    <string name="baseYearMonth">기준년월</string>F
 
+    <string name="btnSettingNm">세팅</string>
+    <string name="btnStatistics">통계</string>
+
+    <string name="srhStDt">시작일</string>
+    <string name="srhEdDt">종료일</string>
 </resources>

@@ -1,27 +1,29 @@
 package com.bjh.accountmanagerkt
 
-import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.database.sqlite.SQLiteException
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
-import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.RequiresApi
+import com.bjh.accountmanagerkt.databinding.ActivityMainBinding
 
 import com.bjh.accountmanagerkt.db.DatabaseAction
 import com.bjh.accountmanagerkt.db.DatabaseColumns
 import com.bjh.accountmanagerkt.db.DatabaseHelper
 import com.bjh.accountmanagerkt.util.StringUtil
-
-import java.util.Calendar
-
-import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.android.synthetic.main.activity_setting.view.*
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.temporal.ChronoField
+import java.time.temporal.Temporal
+import java.time.temporal.TemporalField
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
@@ -33,46 +35,45 @@ class MainActivity : AppCompatActivity() {
     private var chooseMonth: Int = 0        // 선택 월
     private var chooseDayOfMonth: Int = 0   // 선택 일
 
-    private var strBaseTimeSection: String? = null  // 시 / 분 구분
-    private var strBaseTime: String? = null         // 기본 근무 시간
-    private var intBaseAmt: Int = 0             // 기본 근무 금액
-    private var strBaseDayOfMonth: String? = null   // 월 기준일
+    private var strBaseTimeSection: String = "MINUTE"  // 시 / 분 구분
+    private var strBaseTime: Int = 0                 // 기본 근무 시간
+    private var intBaseAmt: Int = 0                  // 기본 근무 금액
+    private var strBaseDayOfMonth: Int = 15          // 월 기준일
+
+    private lateinit var binding: ActivityMainBinding   // activity main view binding
 
     public override fun onSaveInstanceState(savedInstanceState: Bundle) {
         super.onSaveInstanceState(savedInstanceState)
         savedInstanceState.putString("strBaseTimeSection", strBaseTimeSection)
-        savedInstanceState.putString("strBaseTime", strBaseTime)
+        savedInstanceState.putInt("strBaseTime", strBaseTime)
         savedInstanceState.putInt("intBaseAmt", intBaseAmt)
-        savedInstanceState.putString("strBaseDayOfMonth", strBaseDayOfMonth)
+        savedInstanceState.putInt("strBaseDayOfMonth", strBaseDayOfMonth)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         if (savedInstanceState != null) {
-            strBaseTimeSection = savedInstanceState.getString("strBaseTimeSection")
-            strBaseTime = savedInstanceState.getString("strBaseTime")
+            strBaseTimeSection = savedInstanceState.getString("strBaseTimeSection").toString()
+            strBaseTime = savedInstanceState.getInt("strBaseTime")
             intBaseAmt = savedInstanceState.getInt("intBaseAmt")
-            strBaseDayOfMonth = savedInstanceState.getString("strBaseDayOfMonth")
+            strBaseDayOfMonth = savedInstanceState.getInt("strBaseDayOfMonth")
         }
 
         chooseYear = Integer.parseInt(StringUtil.curYear)           // 선택 년도
         chooseMonth = Integer.parseInt(StringUtil.curMonth)         // 선택 월
         chooseDayOfMonth = Integer.parseInt(StringUtil.curDay)      // 선택 일자
 
-            // 기본 세팅 시간 및 금액 불러오기
-        getBaseSettingInfo()
-
-        // 월 근무 시간 및 근무 금액 조회
-        getTotalInfoToMonth(chooseYear, chooseMonth)
-
-        // 월, 일 시간 명 세팅 ( 시 or 분 )
-        setTimeSectionName()
+        getTotalInfoToMonth(chooseYear, chooseMonth)    // 월 근무 시간 및 근무 금액 조회
+        getBaseSettingInfo()    // 기본 세팅 시간 및 금액 불러오기
+        setTimeSectionName(strBaseTimeSection)    // 월, 일 시간 명 세팅 ( 시 or 분 )
 
         // 달력 날짜 선택 이벤트
-        calendarView.setOnDateChangeListener { _, year, month, dayOfMonth ->
-            if (strBaseTimeSection == null || strBaseTimeSection == "" || strBaseTime == null || strBaseTime == "" || intBaseAmt <= 0) {
+        binding.calendarView.setOnDateChangeListener { _, year, month, dayOfMonth ->
+            if (strBaseTimeSection == "" || intBaseAmt <= 0) {
                 Toast.makeText(applicationContext, R.string.settingMessage, Toast.LENGTH_SHORT).show()
             }
 
@@ -82,33 +83,34 @@ class MainActivity : AppCompatActivity() {
 
             getTotalInfoToMonth(chooseYear, chooseMonth)       // 월 근무 시간 및 근무 금액 조회
 
-            val titleDate = chooseYear.toString() + resources.getString(R.string.year) + " " + (if (chooseMonth < 10) "0$chooseMonth" else chooseMonth) + resources.getString(R.string.month) + " " + (if (chooseDayOfMonth < 10) "0$chooseDayOfMonth" else chooseDayOfMonth) + resources.getString(R.string.day)
+            val titleDate = StringUtil.convertFullDateKo(applicationContext, chooseYear, chooseMonth, chooseDayOfMonth)
             val titleMonth = chooseMonth.toString() + " " + resources.getString(R.string.month) + " "
 
             // 달력에 일자 선택 시 상세 정보에 일 세팅
-            txtDaily.text = titleDate
+            binding.txtDaily.text = titleDate
 
             // 월별 근무시간 / 금액 타이틀 세팅
-            monthTitle.text = titleMonth
+            binding.monthTitle.text = titleMonth
 
-            choiceDay = chooseYear.toString() + "" + (if (chooseMonth < 10) "0$chooseMonth" else chooseMonth) + "" + if (chooseDayOfMonth < 10) "0$chooseDayOfMonth" else chooseDayOfMonth
+            // 선택 날짜 값 세팅
+            choiceDay = StringUtil.convertDateYYYYMMDD(chooseYear, chooseMonth, chooseDayOfMonth)
 
             try {
 
-                val cursor = DatabaseHelper(applicationContext).readableDatabase.query(DatabaseColumns._TABLENAME1, arrayOf(DatabaseColumns.WORK_NM, DatabaseColumns.WORK_TIME, DatabaseColumns.WORK_AMOUNT), DatabaseColumns.WORK_DAY + " = ?", arrayOf(choiceDay.toString()), null, null, null)
+                val cursor = DatabaseHelper(applicationContext).readableDatabase.query(DatabaseColumns._TABLENAME1, arrayOf(DatabaseColumns.WORK_NM, DatabaseColumns.WORK_TIME, DatabaseColumns.WORK_AMOUNT), DatabaseColumns.WORK_DAY + " = ?", arrayOf(choiceDay), null, null, null)
 
                 when(cursor.count > 0){
                     true -> {
                         if (cursor.moveToFirst()) {
-                            txtDailyWork.setText(cursor.getString(0))
-                            txtDailyTimes.setText(cursor.getString(1))
-                            txtDailyAmount.setText(StringUtil.convertNumberToComma(cursor.getString(2)))
+                            binding.txtDailyWork.setText(cursor.getString(0))
+                            binding.txtDailyTimes.setText(cursor.getString(1))
+                            binding.txtDailyAmount.setText(StringUtil.convertNumberToComma(cursor.getString(2)))
                         }
                     }
                     else -> {
-                        txtDailyWork.setText("")
-                        txtDailyTimes.setText("")
-                        txtDailyAmount.setText("")
+                        binding.txtDailyWork.setText("")
+                        binding.txtDailyTimes.setText("")
+                        binding.txtDailyAmount.setText("")
                         modChk = false
                     }
                 }
@@ -122,39 +124,39 @@ class MainActivity : AppCompatActivity() {
         }
 
         // 일일 근무 시간 및 근무 금액 저장 버튼 클릭 이벤트
-        btnSave.setOnClickListener {
+        binding.btnSave.setOnClickListener {
             var chk = true
 
-            if (txtDaily.text == "") {
+            if (binding.txtDaily.text == "") {
                 Toast.makeText(applicationContext, R.string.msgChooseDay, Toast.LENGTH_LONG).show()
                 chk = false
             }
 
-            if (chk && txtDailyWork.text.toString() == "") {
+            if (chk && binding.txtDailyWork.text.toString() == "") {
                 Toast.makeText(applicationContext, R.string.msgDailyValidationNm, Toast.LENGTH_LONG).show()
                 chk = false
             }
 
-            if (chk && txtDailyTimes.text.toString() == "") {
+            if (chk && binding.txtDailyTimes.text.toString() == "") {
                 Toast.makeText(applicationContext, R.string.msgDailyValidationTime, Toast.LENGTH_LONG).show()
                 chk = false
             }
 
-            if (chk && txtDailyAmount.text.toString() == "") {
+            if (chk && binding.txtDailyAmount.text.toString() == "") {
                 Toast.makeText(applicationContext, R.string.msgDailyValidationAmount, Toast.LENGTH_LONG).show()
                 chk = false
             }
 
             // 포커스 클리어
-            txtDailyWork.clearFocus()
-            txtDailyTimes.clearFocus()
-            txtDailyAmount.clearFocus()
+            binding.txtDailyWork.clearFocus()
+            binding.txtDailyTimes.clearFocus()
+            binding.txtDailyAmount.clearFocus()
 
             if (chk) {
                 try {
                     val retVal: Long = when(modChk){
-                        true -> { DatabaseAction.updateDailyColumn(DatabaseHelper(applicationContext).readableDatabase, choiceDay, txtDailyWork.text.toString(), txtDailyTimes.text.toString(), Integer.parseInt(txtDailyAmount.text.toString().replace(",".toRegex(), "")).toLong())}
-                        else -> { DatabaseAction.insertDailyColumn(DatabaseHelper(applicationContext).readableDatabase, choiceDay, txtDailyWork.text.toString(), txtDailyTimes.text.toString(), Integer.parseInt(txtDailyAmount.text.toString().replace(",".toRegex(), "")).toLong())}
+                        true -> { DatabaseAction.updateDailyColumn(DatabaseHelper(applicationContext).readableDatabase, choiceDay, binding.txtDailyWork.text.toString(), binding.txtDailyTimes.text.toString(), Integer.parseInt(binding.txtDailyAmount.text.toString().replace(",".toRegex(), "")).toLong())}
+                        else -> { DatabaseAction.insertDailyColumn(DatabaseHelper(applicationContext).readableDatabase, choiceDay, binding.txtDailyWork.text.toString(), binding.txtDailyTimes.text.toString(), Integer.parseInt(binding.txtDailyAmount.text.toString().replace(",".toRegex(), "")).toLong())}
                     }
 
                     if (retVal == 0L) {
@@ -167,7 +169,7 @@ class MainActivity : AppCompatActivity() {
 
                         // 키보드 숨기기
                         val inputManager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-                        inputManager.hideSoftInputFromWindow(txtDailyAmount.windowToken, 0)
+                        inputManager.hideSoftInputFromWindow(binding.txtDailyAmount.windowToken, 0)
                     }
 
                 } catch (e: SQLiteException) {
@@ -178,126 +180,18 @@ class MainActivity : AppCompatActivity() {
         }
 
         // 세팅 버튼 클릭
-        btnSetting.setOnClickListener { v ->
-
-            // setting view 생성
-            val inflater  = LayoutInflater.from(applicationContext)
-            val settingView = inflater.inflate(R.layout.activity_setting, null, true)
-
-            // 기준 시/분 라디오 버튼 선택
-            if (strBaseTimeSection != null && strBaseTimeSection == "HOUR") {
-                settingView.radioHour.isChecked = true
-                settingView.radioMinute.isChecked = false
-            } else if (strBaseTimeSection != null && strBaseTimeSection == "MINUTE") {
-                settingView.radioHour.isChecked = false
-                settingView.radioMinute.isChecked = true
-            }
-
-            settingView.txtBaseTime.setText(strBaseTime)   // 기준 시간 값 세팅
-            settingView.txtBaseAmt.setText(StringUtil.convertNumberToComma(intBaseAmt.toString()))    // 기준 금액 값 세팅
-            settingView.txtBaseDayOfMonth.setText(strBaseDayOfMonth)   // 기준일 값 세팅
-            setBaseDayOfMonthInfo(settingView, Integer.valueOf(strBaseDayOfMonth.toString()))  // 기준일 예시 세팅
-
-            // dialog 세팅
-            val dialog = AlertDialog.Builder(v.context)
-                .setTitle(R.string.settingTitle)
-                .setView(settingView)
-                .setMessage(R.string.settingMessage)
-                .setPositiveButton(R.string.buttonSave, null)
-                .setNegativeButton(R.string.buttonCancel, null).create()
-
-            dialog.setOnShowListener { dialog ->
-                val saveButton = (dialog as AlertDialog).getButton(AlertDialog.BUTTON_POSITIVE)
-                val cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
-
-                // 기본 세팅 저장 버튼 클릭
-                saveButton.setOnClickListener {
-                    var chk = true
-
-                    if (!settingView.radioHour.isChecked && !settingView.radioMinute.isChecked) {        // 구분 선택 체크
-                        Toast.makeText(applicationContext, R.string.msgValidationSection, Toast.LENGTH_LONG).show()
-                        chk = false
-                    }
-
-                    if (chk && (settingView.txtBaseTime.text == null || settingView.txtBaseTime.text.toString() == "")) {         // 시간 선택 체크
-                        Toast.makeText(applicationContext, R.string.msgValidationTime, Toast.LENGTH_LONG).show()
-                        chk = false
-                    }
-
-                    if (chk && (settingView.txtBaseAmt.text == null || settingView.txtBaseAmt.text.toString() == "")) {           // 금액 선택 체크
-                        Toast.makeText(applicationContext, R.string.msgValidationAmount, Toast.LENGTH_LONG).show()
-                        chk = false
-                    }
-
-                    // 월 기준일 비교를 위한 cast
-                    val strBaseDayOfMonthVal = Integer.valueOf(settingView.txtBaseDayOfMonth.text.toString())
-
-                    if (chk && (strBaseDayOfMonthVal < 1 || strBaseDayOfMonthVal > 31)) {
-                        Toast.makeText(applicationContext, R.string.msgBaseDayOfMonth, Toast.LENGTH_LONG).show()
-                        chk = false
-                    }
-
-                    val timeSection: String = when(settingView.radioHour.isChecked){ true -> {"HOUR"} else -> {"MINUTE"} }
-
-                    if (chk) {
-                        try {
-                            val retVal: Long = when(setModChk){
-                                true -> {
-                                    DatabaseAction.updateBaseColumn(DatabaseHelper(applicationContext).readableDatabase, timeSection, settingView.txtBaseTime.text.toString(), Integer.valueOf(settingView.txtBaseAmt.text.toString().replace(",".toRegex(), "")).toLong(), settingView.txtBaseDayOfMonth.text.toString())
-                                }
-                                else -> {
-                                    DatabaseAction.insertBaseColumn(DatabaseHelper(applicationContext).readableDatabase, timeSection, settingView.txtBaseTime.text.toString(), Integer.valueOf(settingView.txtBaseAmt.text.toString().replace(",".toRegex(), "")).toLong(), settingView.txtBaseDayOfMonth.text.toString())
-                                }
-                            }
-
-                            if (retVal == 0L) {
-                                Toast.makeText(applicationContext, "FAIL", Toast.LENGTH_SHORT).show()
-                            } else {
-                                Toast.makeText(applicationContext, "SUCCESS", Toast.LENGTH_SHORT).show()
-                                dialog.dismiss()
-                            }
-
-                            // 월 근무 시간 및 근무 금액 조회
-                            getTotalInfoToMonth(chooseYear, chooseMonth)
-
-                            // 기본 세팅 시간 및 금액 불러오기
-                            getBaseSettingInfo()
-
-                            // 월, 일 시간 명 세팅 ( 시 or 분 )
-                            setTimeSectionName()
-
-                        } catch (e: SQLiteException) {
-                            Toast.makeText(applicationContext, "Database unavailable btnSave onClick", Toast.LENGTH_SHORT).show()
-                        }
-
-                    }
-                }
-
-                // 취소
-                cancelButton.setOnClickListener { dialog.dismiss() }
-
-                // 월 기준일 포커스 변경 시 설명 자동 세팅 및 입력 값 유효성 체크
-                settingView.txtBaseDayOfMonth.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
-                    if (!hasFocus) {
-                        val intVal = Integer.valueOf((v as TextView).text.toString())
-                        if (intVal < 1 || intVal > 31) {
-                            Toast.makeText(applicationContext, R.string.msgBaseDayOfMonth, Toast.LENGTH_SHORT).show()
-
-                            settingView.txtBaseDayOfMonth.isFocusable = true    // 기준일 포커스 세팅
-                            settingView.txtBaseTime.isFocusable = false    // 기준 시간 포커스 제거
-                            settingView.txtBaseAmt.isFocusable = false     // 기준 금액 포커스 제거
-                        }
-                        // ex 안내 세팅
-                        setBaseDayOfMonthInfo(settingView, intVal)
-                    }
-                }
-            }
-
-            dialog.show()
+        binding.btnSetting.setOnClickListener {
+            val settingIntent = Intent(applicationContext, SettingActivity::class.java)
+            settingIntent.putExtra("strBaseTimeSection", strBaseTimeSection)
+            settingIntent.putExtra("strBaseTime", strBaseTime)
+            settingIntent.putExtra("intBaseAmt", intBaseAmt)
+            settingIntent.putExtra("strBaseDayOfMonth", strBaseDayOfMonth)
+            settingIntent.putExtra("setModChk", setModChk)
+            startActivity(settingIntent)
         }
 
         // 통계 버튼 클릭
-        btnStatistics.setOnClickListener {
+        binding.btnStatistics.setOnClickListener {
             val statisticsIntent = Intent(applicationContext, StatisticsActivity::class.java)
             statisticsIntent.putExtra("strBaseTimeSection", strBaseTimeSection)
             statisticsIntent.putExtra("strBaseTime", strBaseTime)
@@ -306,22 +200,19 @@ class MainActivity : AppCompatActivity() {
             startActivity(statisticsIntent)
         }
 
-        // 시간 대비 금액 자동 계산 ( 포커스 변경 시 )
-        txtDailyTimes.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
+        // 시간 대비 금액 자동 계산 ( 포커스 변경 시 )¡
+        binding.txtDailyTimes.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
             if (!hasFocus) {
                 val douDailyTime = (if ((v as EditText).text.toString() == "") 0 else Integer.valueOf(v.text.toString())).toDouble()
-                txtDailyAmount.setText(StringUtil.convertNumberToComma((douDailyTime / java.lang.Double.valueOf(strBaseTime!!) * intBaseAmt).toInt().toString()))
+                binding.txtDailyAmount.setText(StringUtil.convertNumberToComma((douDailyTime / strBaseTime * intBaseAmt).toInt().toString()))
             }
         }
     }
 
-    // 기본일 선택 시 날짜 예시 출력
-    private fun setBaseDayOfMonthInfo(argView : View, argBaseDay: Int) {
-        val startDate = StringUtil.getCalculatorDay(chooseYear, chooseMonth - 1, argBaseDay, -15, Calendar.DAY_OF_YEAR)
-        val endDate = StringUtil.getCalculatorDay(chooseYear, chooseMonth - 1, argBaseDay, 15, Calendar.DAY_OF_YEAR)
-        val strBaseDate = " ex) " + startDate.substring(4, 6) + resources.getString(R.string.month) + startDate.substring(6, 8) + resources.getString(R.string.day) + " ~ " + endDate.substring(4, 6) + resources.getString(R.string.month) + endDate.substring(6, 8) + resources.getString(R.string.day)
-
-        argView.baseDayOfMonthInfo.text = strBaseDate
+    override fun onResume(){
+        super.onResume()
+        getBaseSettingInfo()    // 기본 세팅 값 불러오기
+        binding.calendarView.performClick()
     }
 
     /**
@@ -334,10 +225,10 @@ class MainActivity : AppCompatActivity() {
         val strMonthTitle = chooseMonth.toString() + " " + resources.getString(R.string.month) + " "
 
         // 월별 근무시간 / 금액 타이틀 세팅
-        monthTitle.text = strMonthTitle
+        binding.monthTitle.text = strMonthTitle
 
-        val startDate = StringUtil.getCalculatorDay(chooseYear, chooseMonth - 1, Integer.valueOf(strBaseDayOfMonth!!), -15, Calendar.DAY_OF_YEAR)
-        val endDate = StringUtil.getCalculatorDay(chooseYear, chooseMonth - 1, Integer.valueOf(strBaseDayOfMonth!!), 15, Calendar.DAY_OF_YEAR)
+        val startDate = StringUtil.getCalculatorDay(chooseYear, chooseMonth - 1, strBaseDayOfMonth, -15, Calendar.DAY_OF_YEAR)
+        val endDate = StringUtil.getCalculatorDay(chooseYear, chooseMonth - 1, strBaseDayOfMonth, 15, Calendar.DAY_OF_YEAR)
 
         try {
             val cursor = DatabaseHelper(applicationContext).readableDatabase.query(DatabaseColumns._TABLENAME1, arrayOf(DatabaseColumns.WORK_TIME, DatabaseColumns.WORK_AMOUNT), DatabaseColumns.WORK_DAY + " >= ? and " + DatabaseColumns.WORK_DAY + " <= ?", arrayOf(startDate, endDate), null, null, null)
@@ -354,11 +245,11 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                txtSumTimes.text = intSumTime.toString()
-                txtSumAmount.text = StringUtil.convertNumberToComma(intSumAmt.toString())
+                binding.txtSumTimes.text = intSumTime.toString()
+                binding.txtSumAmount.text = StringUtil.convertNumberToComma(intSumAmt.toString())
             } else {
-                txtSumTimes.text = ""
-                txtSumAmount.text = ""
+                binding.txtSumTimes.text = ""
+                binding.txtSumAmount.text = ""
             }
 
             cursor.close()
@@ -380,16 +271,16 @@ class MainActivity : AppCompatActivity() {
             if (cursor.count > 0) {
                 if (cursor.moveToFirst()) {
                     strBaseTimeSection = cursor.getString(0)
-                    strBaseTime = cursor.getString(1)
+                    strBaseTime = cursor.getInt(1)
                     intBaseAmt = cursor.getInt(2)
-                    strBaseDayOfMonth = cursor.getString(3)
+                    strBaseDayOfMonth = cursor.getInt(3)
                 }
                 setModChk = true
             } else {
                 strBaseTimeSection = "MINUTE"
-                strBaseTime = "0"
+                strBaseTime = 0
                 intBaseAmt = 0
-                strBaseDayOfMonth = "15"
+                strBaseDayOfMonth = 15
                 setModChk = false
             }
 
@@ -405,16 +296,20 @@ class MainActivity : AppCompatActivity() {
     /**
      * 월 / 일 시간 명 세팅
      */
-    private fun setTimeSectionName() {
-        if (strBaseTimeSection != null && strBaseTimeSection == "HOUR") {
-            timeComment1.setText(R.string.labelHour)   // 시
-            timeComment2.setText(R.string.labelHour)   // 시
-        } else if (strBaseTimeSection != null && strBaseTimeSection == "MINUTE") {
-            timeComment1.setText(R.string.labelMinute) // 분
-            timeComment2.setText(R.string.labelMinute) // 분
-        } else {
-            timeComment1.text = ""
-            timeComment2.text = ""
+    private fun setTimeSectionName(argBaseTimeSection : String) {
+        when (argBaseTimeSection) {
+            "HOUR" -> {
+                binding.timeComment1.setText(R.string.labelHour) // 시
+                binding.timeComment2.setText(R.string.labelHour) // 시
+            }
+            "MINUTE" -> {
+                binding.timeComment1.setText(R.string.labelMinute) // 분
+                binding.timeComment2.setText(R.string.labelMinute) // 분
+            }
+            else -> {
+                binding.timeComment1.text = ""
+                binding.timeComment2.text = ""
+            }
         }
     }
 }

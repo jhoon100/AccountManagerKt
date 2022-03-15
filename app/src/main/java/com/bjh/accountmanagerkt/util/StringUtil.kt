@@ -1,5 +1,7 @@
 package com.bjh.accountmanagerkt.util
 
+import android.content.Context
+import com.bjh.accountmanagerkt.R
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -60,6 +62,10 @@ object StringUtil {
         return sdf.format(Date(strArgValue))
     }
 
+    fun convertDateYYYYMMDD(argYear: Int, argMonth: Int, argDay: Int) : String {
+        return argYear.toString() + "" + convertIntDateToStringDate(argMonth) + "" + convertIntDateToStringDate(argDay)
+    }
+
     /**
      * 날짜포맷 yyyy 형식으로 리턴
      * @param strArgValue
@@ -95,5 +101,21 @@ object StringUtil {
         val sf = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
 
         return sf.format(cal.time)
+    }
+
+    /**
+     * yyyy 년 MM월 dd일 형식으로 리턴
+     */
+    fun convertFullDateKo(applicationContext : Context, argYear: Int, argMonth: Int, argDay: Int): String {
+        return argYear.toString() + applicationContext.getString(R.string.year) + " " + convertIntDateToStringDate(argMonth) + applicationContext.getString(
+            R.string.month) + " " + convertIntDateToStringDate(argDay) + applicationContext.getString(
+            R.string.day)
+    }
+
+    /**
+     *
+     */
+    private fun convertIntDateToStringDate(argVal: Int): String {
+        return if(argVal < 10) "0${argVal}" else "$argVal"
     }
 }
