@@ -3,26 +3,19 @@ package com.bjh.accountmanagerkt
 import android.content.Context
 import android.content.Intent
 import android.database.sqlite.SQLiteException
-import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.Toast
-import androidx.annotation.RequiresApi
 import com.bjh.accountmanagerkt.databinding.ActivityMainBinding
 
 import com.bjh.accountmanagerkt.db.DatabaseAction
 import com.bjh.accountmanagerkt.db.DatabaseColumns
 import com.bjh.accountmanagerkt.db.DatabaseHelper
+import com.bjh.accountmanagerkt.db.DatabaseQuery
 import com.bjh.accountmanagerkt.util.StringUtil
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.ZoneOffset
-import java.time.temporal.ChronoField
-import java.time.temporal.Temporal
-import java.time.temporal.TemporalField
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
@@ -50,18 +43,22 @@ class MainActivity : AppCompatActivity() {
         savedInstanceState.putInt("strBaseDayOfMonth", strBaseDayOfMonth)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
+    private fun funSavedInstanceStateChk(savedInstanceState: Bundle?){
         if (savedInstanceState != null) {
             strBaseTimeSection = savedInstanceState.getString("strBaseTimeSection").toString()
             strBaseTime = savedInstanceState.getInt("strBaseTime")
             intBaseAmt = savedInstanceState.getInt("intBaseAmt")
             strBaseDayOfMonth = savedInstanceState.getInt("strBaseDayOfMonth")
         }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        // 기본 값 조회 후 세팅
+        funSavedInstanceStateChk(savedInstanceState)
 
         chooseYear = Integer.parseInt(StringUtil.curYear)           // 선택 년도
         chooseMonth = Integer.parseInt(StringUtil.curMonth)         // 선택 월
@@ -97,7 +94,8 @@ class MainActivity : AppCompatActivity() {
 
             try {
 
-                val cursor = DatabaseHelper(applicationContext).readableDatabase.query(DatabaseColumns._TABLENAME1, arrayOf(DatabaseColumns.WORK_NM, DatabaseColumns.WORK_TIME, DatabaseColumns.WORK_AMOUNT), DatabaseColumns.WORK_DAY + " = ?", arrayOf(choiceDay), null, null, null)
+                // 달력 일자 선택 시 상세 내역 조회
+                val cursor = DatabaseHelper(applicationContext).readableDatabase.rawQuery(DatabaseQuery.getDetailInfo(), arrayOf(choiceDay))
 
                 when(cursor.count > 0){
                     true -> {

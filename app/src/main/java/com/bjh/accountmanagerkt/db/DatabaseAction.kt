@@ -1,7 +1,12 @@
 package com.bjh.accountmanagerkt.db
 
+import android.app.Application
 import android.content.ContentValues
+import android.content.Context
 import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteException
+import android.widget.Toast
+import com.bjh.accountmanagerkt.util.StringUtil
 
 object DatabaseAction {
 
@@ -96,5 +101,33 @@ object DatabaseAction {
         values.put(DatabaseColumns.WORK_TIME, workTime)
         values.put(DatabaseColumns.WORK_AMOUNT, workAmount)
         return db.update(DatabaseColumns._TABLENAME1, values, DatabaseColumns.WORK_DAY + " = ?", arrayOf(workDay)).toLong()
+    }
+
+    fun selectOneData(applicationContext: Context, choiceDay : String) : Map<String, String> {
+
+        val retMap = mapOf<String, String>()
+
+        try {
+            val cursor = DatabaseHelper(applicationContext).readableDatabase.query(DatabaseColumns._TABLENAME1, arrayOf(DatabaseColumns.WORK_NM, DatabaseColumns.WORK_TIME, DatabaseColumns.WORK_AMOUNT), DatabaseColumns.WORK_DAY + " = ?", arrayOf(choiceDay), null, null, null)
+
+            when(cursor.count > 0){
+                true -> {
+                    if (cursor.moveToFirst()) {
+                        retMap[""]
+                    }
+                }
+                else -> {
+
+                }
+            }
+
+            cursor.close()
+            DatabaseHelper(applicationContext).readableDatabase.close()
+
+        } catch (e: SQLiteException) {
+            Toast.makeText(applicationContext, "Database unavailable onSelectedDayChange", Toast.LENGTH_SHORT).show()
+        }
+
+        return retMap
     }
 }

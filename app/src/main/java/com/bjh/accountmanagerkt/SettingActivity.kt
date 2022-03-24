@@ -41,7 +41,10 @@ class SettingActivity : AppCompatActivity() {
         // 기준일 예시 입력
         val baseDay = if(settingBinding.txtBaseDayOfMonth.text.toString() != "") {
             Integer.parseInt(settingBinding.txtBaseDayOfMonth.text.toString())
-        } else { 15 }
+        } else {
+            15
+        }
+
         settingBinding.baseDayOfMonthInfo.text = settingEvent.getExampleText(baseDay)
 
         // 저장 버튼 클릭
